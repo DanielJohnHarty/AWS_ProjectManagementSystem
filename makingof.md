@@ -16,7 +16,7 @@ The create_new_instance function will do several things:
 2. Then it creates a custom vpc with the name and custom CIDR block you specify
 3. Next a public subnet which is part of your VPC is created to host your instance
 4. A security group for your instance is created which is open to all http and https requests plus ssh from the QuickProject Python script's device
-5. A appropriate EC2 instance (4gb memory minimum) is created in the VPC and on the subnet creted in steps 2 and 3. A public IP is assigned and the startup script is ran. The security group from step 4 is assigned and the startup script is run. Within a few minutes, the EC2 instance is up and running, with a docker container exposed on port 8080 running a clean installation of OpenProject. The full web address of the OpenProject server and the instance_id is returned to the caller. The web address to access the server, the instance_id to pass to the close_instance function to delete it.
+5. An appropriate EC2 instance (4gb memory minimum) is created in the VPC and on the subnet created in steps 2 and 3. A public IP is assigned and the startup script is ran. The security group from step 4 is assigned and the startup script is run. Within a few minutes, the EC2 instance is up and running, with a docker container exposed on port 8080 running a clean installation of OpenProject. The full web address of the OpenProject server and the instance_id is returned to the caller. The web address to access the server, the instance_id to pass to the close_instance function to delete it.
 
 ## close_instance
 
