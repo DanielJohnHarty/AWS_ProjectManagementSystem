@@ -1,2 +1,4 @@
 *privatekey*
 *project_config.ini*
+*.pem
+*.ppk
