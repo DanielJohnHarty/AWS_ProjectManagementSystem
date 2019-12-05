@@ -1,7 +1,0 @@
-#!/bin/bash
-yum update -y
-yum upgrade -y
-yum install docker -y
-service docker start
-mkdir -p /var/lib/openproject/{pgdata,static}
-docker run -d -p 80:80 --name openproject -e SECRET_KEY_BASE=secret -v /var/lib/openproject/pgdata:/var/openproject/pgdata -v /var/lib/openproject/static:/var/openproject/assets openproject/community:latest

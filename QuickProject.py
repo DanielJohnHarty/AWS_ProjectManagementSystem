@@ -59,7 +59,6 @@ PUBLIC_SUBNET_CIDR_BLOCK = ProjectConfig.get('ec2_config', 'subnet_cidr_block')
 region = ProjectConfig.get('default', 'region')
 
 
-
 def record_data(data_dict:dict, key, value):
     data_dict[key]=value
     pickle_data(data_dict)
@@ -93,7 +92,6 @@ def get_ec2_client(region):
     return ec2
 
 
-
 @retry(20, (Exception),5)
 def destroy_instance():
     
@@ -101,11 +99,14 @@ def destroy_instance():
     ec2 = get_ec2_client(region)
     data_dict = load_data_from_pickle()
 
-    time.sleep(3)
+
 
     try:
         ec2.terminate_instances(InstanceIds=[data_dict['ec2_instance']])
-        time.sleep(10)
+
+        ec2_waiter = ec2.get_waiter('instance_terminated')
+        ec2_waiter.wait(InstanceIds=[data_dict['ec2_instance']])
+
     except:
         pass
 
@@ -143,13 +144,16 @@ def write_keypair_to_file(filename, key_material):
         file.write(key_material)
 
 
-
 @retry(5, (Exception),5)
 def build_vpc():
     data_dict = load_data_from_pickle()
     try:
         vpc_data = ec2.create_vpc(CidrBlock=VPC_CIDR_BLOCK)
+        
         VpcId = vpc_data['Vpc']['VpcId']
+        vpc_waiter = ec2.get_waiter('vpc_exists')
+        vpc_waiter.wait(VpcIds=[VpcId])
+
         ec2.create_tags(Resources=[VpcId], Tags=[{'Key':'Name', 'Value':instance_identifier+'_VPC'}])
         record_data(data_dict,'vpc_id', VpcId)
         result = VpcId
@@ -243,18 +247,6 @@ def add_security_group_rule(security_group_id):
         GroupId=security_group_id,
         IpPermissions=[
             {'IpProtocol': 'tcp',
-                'FromPort': 22,
-                'ToPort': 22,
-                'IpRanges': [{'CidrIp': '0.0.0.0/0'}]},
-            {'IpProtocol': 'tcp',
-                'FromPort': 80,
-                'ToPort': 80,
-                'IpRanges': [{'CidrIp': '0.0.0.0/0'}]},
-            {'IpProtocol': 'tcp',
-                'FromPort': 443,
-                'ToPort': 443,
-                'IpRanges': [{'CidrIp': '0.0.0.0/0'}]},
-            {'IpProtocol': 'tcp',
                 'FromPort': int(instance_access_port),
                 'ToPort': int(instance_access_port),
                 'IpRanges': [{'CidrIp': '0.0.0.0/0'}]},
@@ -270,6 +262,7 @@ def build_security_group(VpcId):
                                             Description=instance_identifier+'_SECURITY_GROUP',
                                             VpcId=VpcId)
 
+        ec2.get_waiter('security_group_exists').wait()
         security_group_id = security_group_response_data['GroupId']
         ec2.create_tags(Resources=[security_group_id], Tags=[{'Key':'Name', 'Value':instance_identifier+'_SECURITY_GROUP'}])
     except Exception as e:
