@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# This updates the systems current packages
+sudo apt-get update -y
+
+# This upgrades the packages to the latest version
+sudo apt-get upgrade -y
+
+# These are core tools and libraries  rstudio-server depends on
+sudo apt-get install r-base -y
+sudo apt-get install gdebi-core -y
+
+# Download rstudio-server to a specific directory...
+mkdir /home/rstudio-server/download
+cd /home/rstudio-server/download
+wget https://download2.rstudio.org/server/bionic/amd64/rstudio-server-1.2.5019-amd64.deb
+
+# ...and install it. Note that there is no '-y' parameter for this install so we pipe "y" to answer its install confirmation request
+printf "y" | sudo gdebi rstudio-server-1.2.5019-amd64.deb
+
+# Assign password to default ubuntu user. Initial space avoids it being stored in console command history
+ echo -e "6tfcvgy7\n6tfcvgy7" | sudo passwd ubuntu
