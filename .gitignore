@@ -5,3 +5,4 @@
 *.vscode*
 *cache*
 *aws_credentials.ini*
+*ids.pickle*
