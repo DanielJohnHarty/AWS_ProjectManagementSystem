@@ -3,3 +3,5 @@
 *.pem
 *.ppk
 *.vscode*
+*cache*
+*aws_credentials.ini*
