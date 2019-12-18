@@ -59,13 +59,14 @@ PUBLIC_SUBNET_CIDR_BLOCK = ProjectConfig.get('ec2_config', 'subnet_cidr_block')
 region = ProjectConfig.get('default', 'region')
 
 
-def record_data(data_dict:dict, key, value):
+""" def record_data(data_dict:dict, key, value):
     data_dict[key]=value
-    pickle_data(data_dict)
+    pickle_data(data_dict) """
 
 def pickle_data(d:dict):
     with open('ids.pickle', 'wb') as handle:
         pickle.dump(d, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    print("Data Pickled")
 
 def load_data_from_pickle():
     try:
@@ -171,7 +172,7 @@ def build_vpc(ec2_client):
         
         data_dict['vpc_id'] = VpcId
         
-        record_data(data_dict,'vpc_id', VpcId)
+        #record_data(data_dict,'vpc_id', VpcId)
         result = VpcId
     
     except Exception as e:
