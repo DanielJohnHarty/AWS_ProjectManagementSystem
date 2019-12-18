@@ -7,3 +7,8 @@ The OpenProject instance is running inside a Docker container which is exposing 
 1. The readme file is a more typical documentation. 
 2. The makingof.md file is a step by step of AWS setup.
 
+---
+
+1. Add your AWS credentials to the aws_credentials.ini file
+2. Review your config.ini file making sure the startup script is name 
+3. 
