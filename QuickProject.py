@@ -242,7 +242,7 @@ def build_subnet(ec2_client, VpcId):
     return result
 
 
-@retry(5, (Exception),5)
+""" @retry(5, (Exception),5)
 def build_route_table(ec2_client, VpcId, subnet_id, igw_id):
     data_dict = load_data_from_pickle()
     try:
@@ -258,7 +258,7 @@ def build_route_table(ec2_client, VpcId, subnet_id, igw_id):
         print(e)
         result = data_dict['route_table_id']
 
-    return result
+    return result """
 
 
 
@@ -386,17 +386,23 @@ def log_initialization_to_console(ec2_client, public_ip, instance_access_port, i
         print(e)
 
 def launch_open_project_instance():
+    launch_data={}
+    
     ec2_client = get_ec2_client(region)
-    vpc_id = build_vpc(ec2_client)
-    igw_id = build_igw(ec2_client, vpc_id)
-    keypair_name = build_keypair(ec2_client)
-    subnet_id = build_subnet(ec2_client, vpc_id)
-    route_table_id = build_route_table(ec2_client, vpc_id, subnet_id, igw_id)
-    security_group_id = build_security_group(ec2_client, vpc_id)
-    ec2_instance_id = build_ec2_instance(ec2_client, security_group_id, subnet_id, keypair_name)
-    public_ip, allocation_id = allocate_public_ip(ec2_client)
+
+
+    vpc_id = launch_data['vpc_id'] = build_vpc(ec2_client)
+    igw_id = launch_data['igw'] = build_igw(ec2_client, vpc_id)
+    keypair_name = launch_data['keypair'] = build_keypair(ec2_client)
+    subnet_id = launch_data['subnet'] = build_subnet(ec2_client, vpc_id)
+    #route_table_id = build_route_table(ec2_client, vpc_id, subnet_id, igw_id)
+    security_group_id = launch_data['security_group'] = build_security_group(ec2_client, vpc_id)
+    ec2_instance_id = launch_data['ec2_instance'] = build_ec2_instance(ec2_client, security_group_id, subnet_id, keypair_name)
+    public_ip, allocation_id = launch_data['public_ip'], launch_data['allocation_id'] = allocate_public_ip(ec2_client)
     associate_public_ip(ec2_client, ec2_instance_id, allocation_id)
     log_initialization_to_console(ec2_client, public_ip, instance_access_port, ec2_instance_id)
+
+    pickle_data(launch_data)
 
 if __name__=='__main__':
 
