@@ -20,7 +20,7 @@ To use this script:
 
 3. Create an **aws_credentials.ini** file in the same folder, with the same format and with the fields as the **aws_default_credentials.ini**. Add your AWS credentials to it.
 
-4. Create a project_config.ini file in the same folder and with the same format and fields as the **default_config.ini file**. Add a ***project_name*** and a ***project_instance_identifier*** for you project. *Additional fields in this file can be adjusted but changing them could lead to unexpected behaviour. Only modify them if you know what you're doing*. 
+4. Create a **project_config.ini** file in the same folder and with the same format and fields as the **default_config.ini file**. Add a ***project_name*** and a ***project_instance_identifier*** for you project. *Additional fields in this file can be adjusted but changing them could lead to unexpected behaviour. Only modify them if you know what you're doing*. 
 
 5. To launch your OpenProject instance, from the directory of your cloned repository, use the command:
 

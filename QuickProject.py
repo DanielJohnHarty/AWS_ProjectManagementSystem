@@ -69,18 +69,25 @@ region = ProjectConfig.get("default", "region")
 
 
 def pickle_data(d: dict):
+    """
+    Pickes the dictionary to a persistant file.
+    """
     with open("ids.pickle", "wb") as handle:
         pickle.dump(d, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
 def load_data_from_pickle():
+    """
+    Unpickes the file and retruns a dictionary.
+    """
     try:
         with open("ids.pickle", "rb") as handle:
             data_dict = pickle.load(handle)
             result = data_dict
 
-    except:
-        result = {}
+    except Exception as e:
+        print(f"Unpickling failure. Error:\n{e}")
+        sys.exit()
 
     return result
 
@@ -229,7 +236,9 @@ def destroy_instance():
 
 
 def write_keypair_to_file(filename, key_material):
-
+    """
+    Writes the creted keypair to a local file.
+    """
     if os.path.exists(filename):
         os.remove(filename)
 
@@ -478,9 +487,13 @@ def log_initialization_to_console(
             "new_instance_configuration", "project_instance_identifier"
         )
         address = f"{public_ip}:{instance_access_port}/"
-        print(f"OpenProject Server Details: Project Name: {project_name} - Project Identifier: {project_instance_identifier}.")
+        print(
+            f"OpenProject Server Details: Project Name: {project_name} - Project Identifier: {project_instance_identifier}."
+        )
         print(f"\nWeb Address: \n\n{address}\n")
-        print(f"""\nDon't panic if you can't connect to the web address right away. It taks 5-10 minutes for a complete, automatic installation of the software.\n\nIf you can't access {address} via your web browser, just try again in a few minutes ^_^""")
+        print(
+            f"""\nDon't panic if you can't connect to the web address right away. It taks 5-10 minutes for a complete, automatic installation of the software.\n\nIf you can't access {address} via your web browser, just try again in a few minutes ^_^"""
+        )
         print("\n-----------------------------------------------------")
     except Exception as e:
         print(e)
@@ -495,7 +508,7 @@ def launch_open_project_instance():
     igw_id = launch_data["igw"] = build_igw(ec2_client, vpc_id)
     keypair_name = launch_data["keypair"] = build_keypair(ec2_client)
     subnet_id = launch_data["subnet"] = build_subnet(ec2_client, vpc_id)
-    route_table_id = launch_data["route_table_id"] = build_route_table(
+    launch_data["route_table_id"] = build_route_table(
         ec2_client, vpc_id, subnet_id, igw_id
     )
     security_group_id = launch_data["security_group"] = build_security_group(
