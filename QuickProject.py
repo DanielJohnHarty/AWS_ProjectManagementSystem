@@ -94,17 +94,16 @@ def get_ec2_client(region):
             aws_access_key_id=aws_access_key_id,
             aws_secret_access_key=aws_secret_access_key,
             aws_session_token=aws_session_token,
-            region_name=region)
+            region_name=region,
+        )
 
     except Exception as e:
         print(f"Unable to create client object. Error:\n{e}\nExiting...")
-        quit
 
     try:
         _ = ec2.describe_account_attributes()
     except Exception as e:
         print(f"Unable to validate client object. Error:\n{e}")
-        quit
 
     return ec2
 
@@ -507,14 +506,10 @@ def launch_open_project_instance():
     )
 
     pickle_data(launch_data)
+    print("Launch data pickled.")
 
 
 if __name__ == "__main__":
-
-    # destroy_instance()
-    # launch_open_project_instance()
-
-    import sys
 
     try:
         if sys.argv[1].lower() == "destroy":
@@ -524,4 +519,3 @@ if __name__ == "__main__":
     except:
         print("Launching instance...")
         launch_open_project_instance()
-
