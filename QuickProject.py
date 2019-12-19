@@ -53,6 +53,7 @@ aws_secret_access_key = CredentialsConfig.get(
 )
 aws_session_token = CredentialsConfig.get("aws_credentials", "aws_session_token")
 
+
 # Project Config
 ProjectConfig = get_config_parser("project_config.ini")
 instance_identifier = ProjectConfig.get(
@@ -82,10 +83,6 @@ def load_data_from_pickle():
         result = {}
 
     return result
-
-
-# Loads data if already exists or starts
-data_dict = load_data_from_pickle()
 
 
 @retry(5, (Exception), 5)
@@ -197,22 +194,22 @@ def destroy_instance():
         attempts = 0
         while attempts < 3:
             try:
-                ec2.delete_vpc(VpcId = instance_data['vpc_id'])
+                ec2.delete_vpc(VpcId=instance_data["vpc_id"])
                 break
             except Exception as e:
                 attempts += 1
                 print("Error deleting VPC: {}".format(e))
-                print("{} attempts remaain. Please wait:".format(3-attempts))
+                print("{} attempts remain. Please wait:".format(4 - attempts))
                 time.sleep(7)
-    
+                print("VPC deletion failed.")
+                print(
+                    "Due to the nature of the exception, \
+                    you should enter the AWS console to clean \
+                    up this OpenProject instance and network manually."
+                )
+                sys.exit()
+
         print("VPC deleted.")
-
-
-    #  dict_keys(['vpc_id', 'igw', 'keypair', 'subnet', 'route_table_id', 'security_group', 'ec2_instance', 'public_ip', 'allocation_id'])
-
-        # print("VPC deleted.")
-        #vpc_cleanup(data_dict["vpc_id"])
-        
 
     except Exception as e:
         print("Unable to delete VPC:")
@@ -235,7 +232,6 @@ def write_keypair_to_file(filename, key_material):
 
 @retry(5, (Exception), 5)
 def build_vpc(ec2_client):
-    data_dict = load_data_from_pickle()
     try:
         vpc_data = ec2_client.create_vpc(CidrBlock=VPC_CIDR_BLOCK)
 
@@ -248,22 +244,18 @@ def build_vpc(ec2_client):
             Tags=[{"Key": "Name", "Value": instance_identifier + "_VPC"}],
         )
 
-        data_dict["vpc_id"] = VpcId
-
-        # record_data(data_dict,'vpc_id', VpcId)
         result = VpcId
 
     except Exception as e:
         print(e)
-        data_dict = load_data_from_pickle()
-        result = data_dict["vpc_id"]
+        sys.exit()
 
     return result
 
 
 @retry(5, (Exception), 5)
 def build_igw(ec2_client, VpcId):
-    data_dict = load_data_from_pickle()
+
     try:
         igw_data = ec2_client.create_internet_gateway()
         igw_id = igw_data["InternetGateway"]["InternetGatewayId"]
@@ -272,19 +264,17 @@ def build_igw(ec2_client, VpcId):
             Resources=[igw_id],
             Tags=[{"Key": "Name", "Value": instance_identifier + "_IGW"}],
         )
-        # data_dict['igw']=igw_id
-        # pickle_data(data_dict)
-        result = igw_id
+
     except Exception as e:
         print(e)
-        result = data_dict["igw"]
+        sys.exit()
 
-    return result
+    return igw_id
 
 
 @retry(5, (Exception), 5)
 def build_route_table(ec2_client, VpcId, subnet_id, igw_id):
-    data_dict = load_data_from_pickle()
+
     try:
         route_table_data = ec2_client.create_route_table(VpcId=VpcId)
         route_tbl_id = route_table_data["RouteTable"]["RouteTableId"]
@@ -297,15 +287,14 @@ def build_route_table(ec2_client, VpcId, subnet_id, igw_id):
             DestinationCidrBlock="0.0.0.0/0",
             GatewayId=igw_id,
         )
-        data_dict["route_table_id"] = route_tbl_id
-        pickle_data(data_dict)
+
         ec2_client.associate_route_table(RouteTableId=route_tbl_id, SubnetId=subnet_id)
-        result = route_tbl_id
+
     except Exception as e:
         print(e)
-        result = data_dict["route_table_id"]
+        sys.exit()
 
-    return result
+    return route_tbl_id
 
 
 @retry(5, (Exception), 5)
@@ -314,24 +303,23 @@ def build_keypair(ec2_client):
 
     try:
         kp = ec2_client.create_key_pair(KeyName=key_pair_name)
-        data_dict["keypair"] = key_pair_name
-        # pickle_data(data_dict)
 
-        # Write it to a local file
+        # Write keypair to a local file
         privatekey = kp["KeyMaterial"]
         filename = key_pair_name + ".pem"
         write_keypair_to_file(filename, privatekey)
-        return key_pair_name
 
     except Exception as e:
         print(e)
         print("Looks like that keypair_name already exists. So you already have it.")
-        return key_pair_name
+        pass
+
+    return key_pair_name
 
 
 @retry(5, (Exception), 5)
 def build_subnet(ec2_client, VpcId):
-    data_dict = load_data_from_pickle()
+
     try:
         subnet_data = ec2_client.create_subnet(
             VpcId=VpcId, CidrBlock=PUBLIC_SUBNET_CIDR_BLOCK
@@ -342,35 +330,10 @@ def build_subnet(ec2_client, VpcId):
             Tags=[{"Key": "Name", "Value": instance_identifier + "_Public_Subnet"}],
         )
 
-        data_dict["subnet"] = subnet_id
-        # pickle_data(data_dict)
-
-        result = subnet_id
     except Exception as e:
         print(e)
 
-        result = data_dict["subnet"]
-
-    return result
-
-
-""" @retry(5, (Exception),5)
-def build_route_table(ec2_client, VpcId, subnet_id, igw_id):
-    data_dict = load_data_from_pickle()
-    try:
-        route_table_data=ec2_client.create_route_table(VpcId=VpcId)
-        route_tbl_id=route_table_data['RouteTable']['RouteTableId']
-        ec2_client.create_tags(Resources=[route_tbl_id], Tags=[{'Key':'Name', 'Value':instance_identifier+'_RouteTable'}])
-        ec2_client.create_route(RouteTableId=route_tbl_id,DestinationCidrBlock='0.0.0.0/0',GatewayId=igw_id)
-        data_dict['route_table_id']=route_tbl_id
-        pickle_data(data_dict)
-        ec2_client.associate_route_table(RouteTableId=route_tbl_id,SubnetId=subnet_id)
-        result =  route_tbl_id
-    except Exception as e:
-        print(e)
-        result = data_dict['route_table_id']
-
-    return result """
+    return subnet_id
 
 
 @retry(5, (Exception), 5)
@@ -390,7 +353,7 @@ def add_security_group_rule(ec2_client, security_group_id):
 
 @retry(5, (Exception), 5)
 def build_security_group(ec2_client, VpcId):
-    data_dict = load_data_from_pickle()
+
     try:
         security_group_response_data = ec2_client.create_security_group(
             GroupName=instance_identifier + "_SECURITY_GROUP",
@@ -405,18 +368,19 @@ def build_security_group(ec2_client, VpcId):
             Tags=[{"Key": "Name", "Value": instance_identifier + "_SECURITY_GROUP"}],
         )
     except Exception as e:
-        print(e)
-        security_group_id = data_dict["security_group"]
-
-    try:
-        add_security_group_rule(ec2_client, security_group_id)
-
-    except Exception as e:
+        print("Couldn't create security group. Error:")
         print(e)
         pass
 
-    data_dict["security_group"] = security_group_id
-    # pickle_data(data_dict)
+    try:
+        add_security_group_rule(ec2_client, security_group_id)
+        print("Added rule to security group")
+
+    except Exception as e:
+        print("Couldn't add rule to security group. Error:")
+        print(e)
+        pass
+
     return security_group_id
 
 
@@ -440,31 +404,27 @@ def build_ec2_instance(ec2_client, security_group_id, subnet_id, key_pair_name):
             Tags=[{"Key": "Name", "Value": instance_identifier + "_Instance"}],
         )
 
-        data_dict["ec2_instance"] = instance_id
-        # pickle_data(data_dict)
-
-        result = instance_id
     except Exception as e:
+        print("Error creating EC2 instance. Error:")
         print(e)
-        result = e
+        instance_id = e
+        pass
 
-    return result
+    return instance_id
 
 
 @retry(5, (Exception), 5)
 def allocate_public_ip(ec2_client):
-    data_dict = load_data_from_pickle()
+
     try:
         allocated_ip_data = ec2_client.allocate_address()
         allocation_id = allocated_ip_data["AllocationId"]
         public_ip = allocated_ip_data["PublicIp"]
-        data_dict["public_ip"] = public_ip
-        data_dict["allocation_id"] = allocation_id
-        # pickle_data(data_dict)
         result = (public_ip, allocation_id)
     except Exception as e:
+        print("Unable to allocate public IP. Error:")
         print(e)
-        result = data_dict["public_ip"], data_dict["allocation_id"]
+        result = "e", "e"
 
     return result
 
@@ -480,6 +440,7 @@ def associate_public_ip(ec2_client, instance_id, allocation_id):
             )
             break
         except Exception as e:
+            print(f"Error associating public IP. Error:\n{e}")
             print(f"""Retrying in 10 seconds...""")
             time.sleep(10)
 
