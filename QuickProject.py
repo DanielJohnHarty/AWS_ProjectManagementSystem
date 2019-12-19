@@ -115,12 +115,12 @@ def destroy_instance():
     instance_data = load_data_from_pickle()
 
     try:
+        print("Terminating EC2 Instance. This can take a few minutes...")
         ec2.terminate_instances(InstanceIds=[instance_data["ec2_instance"]])
         ec2_waiter = ec2.get_waiter("instance_terminated")
         ec2_waiter.wait(InstanceIds=[instance_data["ec2_instance"]])
 
         print("ec2 instance terminated...")
-
 
     except Exception as e:
         print("Unable to terminate ec2 instance:")
@@ -159,33 +159,41 @@ def destroy_instance():
         )
         pass
 
-    try: 
-        ec2.detach_internet_gateway(InternetGatewayId =instance_data['igw'], VpcId=instance_data['vpc_id'])
+    try:
+        ec2.detach_internet_gateway(
+            InternetGatewayId=instance_data["igw"], VpcId=instance_data["vpc_id"]
+        )
+        print("Internet gateway detached.")
     except Exception as e:
         print(e)
         pass
     try:
         ec2.delete_internet_gateway(InternetGatewayId=instance_data["igw"])
+        print("Internet gateway deleted.")
     except Exception as e:
         print(e)
         pass
     try:
-        ec2.delete_subnet(SubnetId =instance_data["subnet"])
+        ec2.delete_subnet(SubnetId=instance_data["subnet"])
+        print("Subnet deleted.")
     except Exception as e:
         print(e)
         pass
     try:
-        ec2.delete_key_pair(KeyName =instance_data['keypair'])
+        ec2.delete_key_pair(KeyName=instance_data["keypair"])
+        print("Keypair deleted.")
     except Exception as e:
         print(e)
         pass
     try:
-        ec2.delete_route_table(RouteTableId =instance_data["route_table_id"])
+        ec2.delete_route_table(RouteTableId=instance_data["route_table_id"])
+        print("Route table deleted.")
     except Exception as e:
         print(e)
         pass
     try:
-        ec2.delete_security_group(GroupId =instance_data['security_group'])
+        ec2.delete_security_group(GroupId=instance_data["security_group"])
+        print("Security group deleted.")
     except Exception as e:
         print(e)
         pass
@@ -464,15 +472,15 @@ def log_initialization_to_console(
 
     # Initialisation is complete. Share final message.
     try:
+        print("\n-----------------------------------------------------\n")
         project_name = ProjectConfig.get("new_instance_configuration", "project_name")
         project_instance_identifier = ProjectConfig.get(
             "new_instance_configuration", "project_instance_identifier"
         )
-        message = ProjectConfig.get("success", "message")
         address = f"{public_ip}:{instance_access_port}/"
-        print(message)
-        print(f"Details: {project_name} - {project_instance_identifier}.")
-        print(f"The web address is: \n\n{address}")
+        print(f"OpenProject Server Details: Project Name: {project_name} - Project Identifier: {project_instance_identifier}.")
+        print(f"\nWeb Address: \n\n{address}\n")
+        print(f"""\nDon't panic if you can't connect to the web address right away. It taks 5-10 minutes for a complete, automatic installation of the software.\n\nIf you can't access {address} via your web browser, just try again in a few minutes ^_^""")
         print("\n-----------------------------------------------------")
     except Exception as e:
         print(e)
