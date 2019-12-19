@@ -88,76 +88,27 @@ def load_data_from_pickle():
 data_dict = load_data_from_pickle()
 
 
-def vpc_cleanup(vpcid):
-
-    ec2_ = boto3.resource(
-        "ec2",
-        region,
-        aws_access_key_id=aws_access_key_id,
-        aws_secret_access_key=aws_secret_access_key,
-        aws_session_token=aws_session_token,
-    )
-
-    vpc = ec2_.Vpc(vpcid)
-
-    ec2client = ec2_.meta.client
-    vpc = ec2_.Vpc(vpcid)
-    # detach default dhcp_options if associated with the vpc
-    dhcp_options_default = ec2_.DhcpOptions("default")
-    if dhcp_options_default:
-        dhcp_options_default.associate_with_vpc(VpcId=vpc.id)
-    # detach and delete all gateways associated with the vpc
-    for gw in vpc.internet_gateways.all():
-        vpc.detach_internet_gateway(InternetGatewayId=gw.id)
-        gw.delete()
-    # delete all route table associations
-    for rt in vpc.route_tables.all():
-        for rta in rt.associations:
-            if not rta.main:
-                rta.delete()
-    # delete any instances
-    for subnet in vpc.subnets.all():
-        for instance in subnet.instances.all():
-            instance.terminate()
-    # delete our endpoints
-    for ep in ec2client.describe_vpc_endpoints(
-        Filters=[{"Name": "vpc-id", "Values": [vpcid]}]
-    )["VpcEndpoints"]:
-        ec2client.delete_vpc_endpoints(VpcEndpointIds=[ep["VpcEndpointId"]])
-    # delete our security groups
-    for sg in vpc.security_groups.all():
-        if sg.group_name != "default":
-            sg.delete()
-    # delete any vpc peering connections
-    for vpcpeer in ec2client.describe_vpc_peering_connections(
-        Filters=[{"Name": "requester-vpc-info.vpc-id", "Values": [vpcid]}]
-    )["VpcPeeringConnections"]:
-        ec2_.VpcPeeringConnection(vpcpeer["VpcPeeringConnectionId"]).delete()
-    # delete non-default network acls
-    for netacl in vpc.network_acls.all():
-        if not netacl.is_default:
-            netacl.delete()
-    # delete network interfaces
-    for subnet in vpc.subnets.all():
-        for interface in subnet.network_interfaces.all():
-            interface.delete()
-        subnet.delete()
-    # finally, delete the vpc
-    ec2client.delete_vpc(VpcId=vpcid)
-
-
-
-
 @retry(5, (Exception), 5)
 def get_ec2_client(region):
 
-    ec2 = boto3.client(
-        "ec2",
-        aws_access_key_id=aws_access_key_id,
-        aws_secret_access_key=aws_secret_access_key,
-        aws_session_token=aws_session_token,
-        region_name=region,
-    )
+    try:
+        ec2 = boto3.client(
+            "ec2",
+            aws_access_key_id=aws_access_key_id,
+            aws_secret_access_key=aws_secret_access_key,
+            aws_session_token=aws_session_token,
+            region_name=region)
+
+    except Exception as e:
+        print(f"Unable to create client object. Error:\n{e}\nExiting...")
+        quit
+
+    try:
+        _ = ec2.describe_account_attributes()
+    except Exception as e:
+        print(f"Unable to validate client object. Error:\n{e}")
+        quit
+
     return ec2
 
 
@@ -173,6 +124,7 @@ def destroy_instance():
         ec2_waiter.wait(InstanceIds=[instance_data["ec2_instance"]])
 
         print("ec2 instance terminated...")
+
 
     except Exception as e:
         print("Unable to terminate ec2 instance:")
